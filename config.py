@@ -16,7 +16,7 @@ class Config:
         
         # Slack settings
         self.slack_token = os.getenv('SLACK_BOT_TOKEN')
-        self.slack_channel = os.getenv('SLACK_CHANNEL', '#general')
+        self.slack_channel = os.getenv('SLACK_CHANNEL')
         self.slack_user_id = os.getenv('SLACK_USER_ID')  # Optional: for direct messages
         
         # Analysis settings
