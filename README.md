@@ -13,8 +13,9 @@ A Python application that analyzes your Google Calendar data and sends weekly re
 - **Focused Analysis**: Excludes all-day events by default (configurable)
 
 ### Upcoming Week Preview
-- **Schedule Overview**: Summary of upcoming meetings
-- **Key Meetings**: Highlights important/long meetings
+- **AI Schedule Summary**: Intelligent narrative about your upcoming week with strategic advice
+- **Brief Daily Overview**: Quick meeting count breakdown by day
+- **Key Meetings**: Highlights important/long meetings  
 - **Focus Opportunities**: Identifies days with lighter meeting loads
 - **Time Awareness**: Helps you prepare for busy periods
 
@@ -164,6 +165,7 @@ Each weekly report includes:
 | `INCLUDE_PRIVATE_EVENTS` | `false` | Include private calendar events |
 | `INCLUDE_ALL_DAY_EVENTS` | `false` | Include all-day events in analysis |
 | `WRITTEN_SUMMARY_ENABLED` | `true` | Enable AI-generated written summaries |
+| `UPCOMING_AI_SUMMARY_ENABLED` | `true` | Enable AI summaries for upcoming week |
 | `MAX_UPCOMING_EVENTS` | `10` | Max events in upcoming preview |
 
 ## Troubleshooting 🔧

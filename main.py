@@ -141,6 +141,13 @@ def run_weekly_analysis_test_mode():
         
         print(f"\n🗓️ Upcoming Week ({upcoming_week_summary['period']}):")
         print(f"  • Scheduled meetings: {upcoming_week_summary['total_events']}")
+        
+        # Generate and display upcoming AI summary
+        if config.upcoming_ai_summary_enabled:
+            upcoming_summary = slack_reporter._generate_upcoming_ai_summary(upcoming_week_summary)
+            print(f"\n🔮 AI Week Ahead Summary:")
+            print(f"   {upcoming_summary}")
+        
         if upcoming_week_summary['focus_opportunities']:
             print("  • Focus opportunities:")
             for opp in upcoming_week_summary['focus_opportunities']:

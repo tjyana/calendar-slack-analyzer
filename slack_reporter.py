@@ -129,6 +129,20 @@ class SlackReporter:
             }
         ]
         
+        # Add AI summary if enabled
+        if getattr(self.config, 'upcoming_ai_summary_enabled', True):
+            ai_summary = self._generate_upcoming_ai_summary(summary)
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"🔮 *Week Ahead Summary*\n{ai_summary}"
+                }
+            })
+            blocks.append({
+                "type": "divider"
+            })
+        
         # Overview
         overview_text = (
             f"*Period:* {summary['period']}\n"
@@ -143,8 +157,9 @@ class SlackReporter:
             }
         })
         
-        # Daily schedule (show first few days)
-        if summary['daily_schedule']:
+        # Daily schedule (show only if AI summary is disabled or as a brief overview)
+        if summary['daily_schedule'] and not getattr(self.config, 'upcoming_ai_summary_enabled', True):
+            # Full detailed schedule when AI summary is disabled
             schedule_text = "*This Week's Schedule:*\n"
             day_count = 0
             for day, meetings in summary['daily_schedule'].items():
@@ -170,6 +185,21 @@ class SlackReporter:
                     "text": schedule_text
                 }
             })
+        elif summary['daily_schedule'] and getattr(self.config, 'upcoming_ai_summary_enabled', True):
+            # Brief overview when AI summary is enabled
+            daily_counts = {day.split(',')[0]: len(meetings) for day, meetings in summary['daily_schedule'].items()}
+            if daily_counts:
+                brief_text = "*Daily Overview:* " + " | ".join([f"{day} ({count})" for day, count in list(daily_counts.items())[:5]])
+                if len(daily_counts) > 5:
+                    brief_text += f" | +{len(daily_counts) - 5} more days"
+                
+                blocks.append({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": brief_text
+                    }
+                })
         
         # Key meetings
         if summary['key_meetings']:
@@ -200,6 +230,123 @@ class SlackReporter:
             })
         
         return blocks
+    
+    def _generate_upcoming_ai_summary(self, upcoming_week_summary: Dict[str, Any]) -> str:
+        """Generate an AI-powered summary of the upcoming week schedule."""
+        if not self.config.openai_api_key or not self.config.ai_categorization_enabled:
+            return self._generate_basic_upcoming_summary(upcoming_week_summary)
+        
+        try:
+            import openai
+            logger.info("Generating AI-powered upcoming week summary...")
+            
+            # Prepare data for AI analysis
+            total_events = upcoming_week_summary['total_events']
+            daily_schedule = upcoming_week_summary.get('daily_schedule', {})
+            key_meetings = upcoming_week_summary.get('key_meetings', [])
+            focus_opportunities = upcoming_week_summary.get('focus_opportunities', [])
+            
+            # Analyze daily distribution
+            daily_loads = {}
+            busiest_day = ""
+            lightest_day = ""
+            if daily_schedule:
+                for day, meetings in daily_schedule.items():
+                    daily_loads[day] = len(meetings)
+                
+                busiest_day = max(daily_loads.items(), key=lambda x: x[1])[0] if daily_loads else ""
+                lightest_day = min(daily_loads.items(), key=lambda x: x[1])[0] if daily_loads else ""
+            
+            # Get meeting types from titles
+            meeting_types = []
+            for day, meetings in daily_schedule.items():
+                for meeting in meetings[:3]:  # Sample a few meetings
+                    meeting_types.append(meeting['title'])
+            
+            # Build context for AI
+            context = f"""Upcoming week schedule analysis:
+- Total scheduled meetings: {total_events}
+- Busiest day: {busiest_day} ({daily_loads.get(busiest_day, 0)} meetings)
+- Lightest day: {lightest_day} ({daily_loads.get(lightest_day, 0)} meetings)
+- Key/important meetings: {len(key_meetings)}
+- Focus opportunities: {len(focus_opportunities)} days
+- Sample meeting titles: {', '.join(meeting_types[:5])}
+- Daily breakdown: {', '.join([f"{day.split(',')[0]} ({count})" for day, count in daily_loads.items()])}
+"""
+
+            prompt = f"""Write a helpful 3-4 sentence summary of this person's upcoming week schedule. Focus on:
+1. Overall workload and meeting density
+2. Strategic advice about time management  
+3. Highlight the best days for focus work or busiest days to prepare for
+4. Note any patterns or important meetings to be aware of
+
+Write in a supportive, coach-like tone. Start with "Looking ahead..."
+
+Schedule data:
+{context}"""
+
+            # Handle both old and new OpenAI API versions
+            if hasattr(openai, 'OpenAI'):
+                # New API (v1.0+)
+                client = openai.OpenAI(api_key=self.config.openai_api_key)
+                response = client.chat.completions.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                    temperature=0.7
+                )
+                summary = response.choices[0].message.content.strip()
+            else:
+                # Old API (v0.x)
+                openai.api_key = self.config.openai_api_key
+                response = openai.ChatCompletion.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                    temperature=0.7
+                )
+                summary = response.choices[0].message.content.strip()
+            
+            logger.info("Successfully generated AI-powered upcoming week summary")
+            return summary
+            
+        except ImportError as e:
+            logger.warning(f"OpenAI library not available for upcoming summary: {str(e)}")
+            return self._generate_basic_upcoming_summary(upcoming_week_summary)
+        except Exception as e:
+            logger.warning(f"Failed to generate AI upcoming summary: {type(e).__name__}: {str(e)}")
+            logger.warning("Falling back to basic upcoming summary")
+            return self._generate_basic_upcoming_summary(upcoming_week_summary)
+    
+    def _generate_basic_upcoming_summary(self, upcoming_week_summary: Dict[str, Any]) -> str:
+        """Generate a basic written summary of upcoming week without AI."""
+        total_events = upcoming_week_summary['total_events']
+        daily_schedule = upcoming_week_summary.get('daily_schedule', {})
+        focus_opportunities = upcoming_week_summary.get('focus_opportunities', [])
+        
+        if total_events == 0:
+            return "Looking ahead, you have a completely open week with no scheduled meetings. Perfect time for deep work and catching up on projects!"
+        
+        # Determine meeting load
+        if total_events >= 20:
+            load_desc = "a packed week"
+        elif total_events >= 10:
+            load_desc = "a busy week"
+        else:
+            load_desc = "a manageable week"
+        
+        # Find busiest day
+        busiest_day = ""
+        if daily_schedule:
+            busiest_day_data = max(daily_schedule.items(), key=lambda x: len(x[1]))
+            busiest_day = f" {busiest_day_data[0].split(',')[0]} looks busiest with {len(busiest_day_data[1])} meetings."
+        
+        # Focus opportunities
+        focus_note = ""
+        if focus_opportunities:
+            focus_note = f" You have {len(focus_opportunities)} days that look good for focus work."
+        
+        return f"Looking ahead, you have {load_desc} with {total_events} scheduled meetings.{busiest_day}{focus_note}"
     
     def _generate_written_summary(self, past_week_analysis: Dict[str, Any], 
                                 upcoming_week_summary: Dict[str, Any]) -> str:

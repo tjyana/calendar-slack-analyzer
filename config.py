@@ -38,6 +38,7 @@ class Config:
         self.include_private_events = os.getenv('INCLUDE_PRIVATE_EVENTS', 'false').lower() == 'true'
         self.include_all_day_events = os.getenv('INCLUDE_ALL_DAY_EVENTS', 'false').lower() == 'true'
         self.written_summary_enabled = os.getenv('WRITTEN_SUMMARY_ENABLED', 'true').lower() == 'true'
+        self.upcoming_ai_summary_enabled = os.getenv('UPCOMING_AI_SUMMARY_ENABLED', 'true').lower() == 'true'
         self.max_upcoming_events = int(os.getenv('MAX_UPCOMING_EVENTS', '10'))
     
     def validate(self) -> bool:

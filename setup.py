@@ -34,6 +34,7 @@ EXCLUDE_WEEKENDS=true
 INCLUDE_PRIVATE_EVENTS=false
 INCLUDE_ALL_DAY_EVENTS=false
 WRITTEN_SUMMARY_ENABLED=true
+UPCOMING_AI_SUMMARY_ENABLED=true
 MAX_UPCOMING_EVENTS=10
 
 # Testing (set to true to run analysis immediately on startup)
