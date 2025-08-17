@@ -106,23 +106,119 @@ class CalendarAnalyzer:
         return 'date' in start_data and 'dateTime' not in start_data
     
     def _categorize_event(self, event: Dict) -> str:
-        """Categorize an event based on its title and description."""
+        """Categorize an event using AI or fallback to keyword matching."""
+        # Try AI categorization first if enabled and API key is available
+        if self.config.ai_categorization_enabled and self.config.openai_api_key:
+            try:
+                return self._ai_categorize_event(event)
+            except Exception as e:
+                logger.warning(f"AI categorization failed, falling back to keywords: {str(e)}")
+        
+        # Fallback to keyword-based categorization
+        return self._keyword_categorize_event(event)
+    
+    def _ai_categorize_event(self, event: Dict) -> str:
+        """Use AI to categorize an event based on its content."""
+        import openai
+        
+        title = event.get('summary', '')
+        description = event.get('description', '')
+        attendees = event.get('attendees', [])
+        attendee_count = len(attendees)
+        
+        # Build context for AI
+        context_parts = []
+        if title:
+            context_parts.append(f"Title: {title}")
+        if description:
+            context_parts.append(f"Description: {description}")
+        if attendee_count > 0:
+            context_parts.append(f"Number of attendees: {attendee_count}")
+        
+        meeting_context = "\n".join(context_parts)
+        
+        if not meeting_context.strip():
+            return 'other'
+        
+        prompt = f"""Analyze this calendar meeting and categorize it into one of these types:
+
+- standup: Daily team check-ins, status updates, quick sync meetings
+- planning: Sprint planning, project planning, roadmap sessions, strategic planning
+- review: Code reviews, retrospectives, demos, showcase meetings, performance reviews
+- one_on_one: 1:1 meetings, personal check-ins, manager meetings
+- interview: Job interviews, candidate meetings, hiring discussions
+- training: Learning sessions, workshops, onboarding, skill development
+- brainstorm: Ideation sessions, creative meetings, problem-solving discussions
+- client: External client meetings, customer calls, vendor meetings
+- social: Team building, social events, casual gatherings
+- administrative: Budget meetings, compliance, reporting, admin tasks
+- technical: Technical deep dives, architecture discussions, system design
+- other: Anything that doesn't fit the above categories
+
+Meeting details:
+{meeting_context}
+
+Respond with only the category name (lowercase, no explanation)."""
+
+        try:
+            client = openai.OpenAI(api_key=self.config.openai_api_key)
+            response = client.chat.completions.create(
+                model=self.config.openai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=20,
+                temperature=0.1
+            )
+            
+            category = response.choices[0].message.content.strip().lower()
+            
+            # Validate that we got a valid category
+            valid_categories = [
+                'standup', 'planning', 'review', 'one_on_one', 'interview', 
+                'training', 'brainstorm', 'client', 'social', 'administrative', 
+                'technical', 'other'
+            ]
+            
+            if category in valid_categories:
+                return category
+            else:
+                logger.warning(f"AI returned invalid category '{category}', using 'other'")
+                return 'other'
+                
+        except Exception as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            raise
+    
+    def _keyword_categorize_event(self, event: Dict) -> str:
+        """Fallback keyword-based categorization."""
         title = event.get('summary', '').lower()
         description = event.get('description', '').lower()
         text_to_analyze = f"{title} {description}"
         
-        for category, keywords in self.config.meeting_keywords.items():
+        # Updated keyword categories to match AI categories
+        keyword_categories = {
+            'standup': ['standup', 'daily', 'scrum', 'sync', 'check-in'],
+            'planning': ['planning', 'grooming', 'estimation', 'roadmap', 'sprint planning'],
+            'review': ['review', 'retrospective', 'demo', 'showcase', 'retro'],
+            'one_on_one': ['1:1', 'one on one', 'one-on-one', '1-1', 'check in'],
+            'interview': ['interview', 'hiring', 'candidate', 'onsite', 'phone screen'],
+            'training': ['training', 'workshop', 'onboarding', 'learning', 'education'],
+            'brainstorm': ['brainstorm', 'ideation', 'creative', 'problem solving'],
+            'client': ['client', 'customer', 'vendor', 'external', 'partner'],
+            'social': ['social', 'team building', 'lunch', 'coffee', 'happy hour'],
+            'administrative': ['budget', 'admin', 'compliance', 'reporting', 'hr'],
+            'technical': ['technical', 'architecture', 'design', 'code', 'engineering']
+        }
+        
+        for category, keywords in keyword_categories.items():
             if any(keyword in text_to_analyze for keyword in keywords):
                 return category
         
-        # Check attendee count for meeting size categorization
+        # Check attendee count for size-based categorization
         attendees = event.get('attendees', [])
         if len(attendees) > 10:
-            return 'large_meeting'
-        elif len(attendees) > 3:
-            return 'team_meeting'
+            return 'other'  # Large meeting, categorize as 'other'
         elif len(attendees) == 2:
-            return 'small_meeting'
+            return 'one_on_one'  # Likely a 1:1 meeting
         
         return 'other'
     

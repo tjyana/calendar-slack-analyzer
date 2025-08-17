@@ -18,6 +18,12 @@ SLACK_CHANNEL=#general
 # Optional: Send as DM instead of to channel
 # SLACK_USER_ID=U1234567890
 
+# AI Configuration (Optional but recommended)
+# Get your API key from: https://platform.openai.com/api-keys
+OPENAI_API_KEY=your-openai-api-key-here
+AI_CATEGORIZATION_ENABLED=true
+OPENAI_MODEL=gpt-3.5-turbo
+
 # Analysis Settings
 TIMEZONE=Asia/Tokyo
 WORKING_HOURS_START=9
@@ -181,12 +187,14 @@ def main():
     
     if not os.path.exists('credentials.json'):
         print("3. ⚠️  Download credentials.json from Google Cloud Console")
-        print("4. 🧪 Run setup test: python test_setup.py")
-        print("5. 🚀 Start the app: python main.py")
+        print("4. 🤖 Get OpenAI API key for AI categorization (optional)")
+        print("5. 🧪 Run setup test: python test_setup.py")
+        print("6. 🚀 Start the app: python main.py")
     else:
         print("3. ✅ Google credentials found")
-        print("4. 🧪 Run setup test: python test_setup.py")
-        print("5. 🚀 Start the app: python main.py")
+        print("4. 🤖 Get OpenAI API key for AI categorization (optional)")
+        print("5. 🧪 Run setup test: python test_setup.py")
+        print("6. 🚀 Start the app: python main.py")
     
     print("\n💡 Quick commands:")
     print("   Demo output: python demo.py")

@@ -17,14 +17,22 @@ A Python application that analyzes your Google Calendar data and sends weekly re
 - **Focus Opportunities**: Identifies days with lighter meeting loads
 - **Time Awareness**: Helps you prepare for busy periods
 
-### Intelligent Categorization
-The app automatically categorizes meetings based on keywords:
-- **Standup**: daily, scrum, standup
-- **Review**: review, retrospective, demo
-- **Planning**: planning, grooming, estimation
-- **1:1**: 1:1, one-on-one, 1-1
-- **Interview**: interview, hiring, candidate
-- **External**: client, customer, vendor, external
+### AI-Powered Meeting Categorization
+The app uses AI to intelligently categorize meetings based on context:
+- **Standup**: Daily team check-ins, status updates, sync meetings
+- **Planning**: Sprint planning, project planning, roadmap sessions
+- **Review**: Code reviews, retrospectives, demos, performance reviews
+- **One-on-One**: 1:1 meetings, personal check-ins, manager meetings
+- **Interview**: Job interviews, candidate meetings, hiring discussions
+- **Training**: Learning sessions, workshops, onboarding
+- **Brainstorm**: Ideation sessions, creative meetings, problem-solving
+- **Client**: External client meetings, customer calls, vendor meetings
+- **Social**: Team building, social events, casual gatherings
+- **Administrative**: Budget meetings, compliance, reporting
+- **Technical**: Technical deep dives, architecture discussions
+- **Other**: Anything that doesn't fit the above categories
+
+*Falls back to keyword matching if AI is unavailable*
 
 ## Setup Instructions 🛠️
 
@@ -54,7 +62,16 @@ pip install -r requirements.txt
 4. Install the app to your workspace
 5. Copy the Bot User OAuth Token (starts with `xoxb-`)
 
-### 4. Configuration
+### 4. OpenAI API Setup (Optional but Recommended)
+
+1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Create an account or sign in
+3. Generate a new API key
+4. Copy the API key (starts with `sk-`)
+
+*Note: AI categorization provides much more accurate meeting classification than keyword matching. Without OpenAI, the app falls back to basic keyword detection.*
+
+### 5. Configuration
 
 1. Copy the example environment file:
    ```bash
@@ -136,6 +153,9 @@ Each weekly report includes:
 | `SLACK_BOT_TOKEN` | - | **Required** Slack bot token |
 | `SLACK_CHANNEL` | `#general` | Channel for reports |
 | `SLACK_USER_ID` | - | Send DM instead of channel |
+| `OPENAI_API_KEY` | - | OpenAI API key for AI categorization |
+| `AI_CATEGORIZATION_ENABLED` | `true` | Enable AI-powered meeting categorization |
+| `OPENAI_MODEL` | `gpt-3.5-turbo` | OpenAI model to use |
 | `TIMEZONE` | `UTC` | Your timezone |
 | `WORKING_HOURS_START` | `9` | Work day start hour |
 | `WORKING_HOURS_END` | `17` | Work day end hour |

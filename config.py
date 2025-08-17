@@ -19,21 +19,20 @@ class Config:
         self.slack_channel = os.getenv('SLACK_CHANNEL')
         self.slack_user_id = os.getenv('SLACK_USER_ID')  # Optional: for direct messages
         
+        # AI settings for meeting categorization
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.ai_categorization_enabled = os.getenv('AI_CATEGORIZATION_ENABLED', 'true').lower() == 'true'
+        self.openai_model = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
+        
         # Analysis settings
         self.timezone = os.getenv('TIMEZONE', 'UTC')
         self.working_hours_start = int(os.getenv('WORKING_HOURS_START', '9'))
         self.working_hours_end = int(os.getenv('WORKING_HOURS_END', '17'))
         self.exclude_weekends = os.getenv('EXCLUDE_WEEKENDS', 'true').lower() == 'true'
         
-        # Meeting categories for pattern analysis
-        self.meeting_keywords = {
-            'standup': ['standup', 'daily', 'scrum'],
-            'review': ['review', 'retrospective', 'demo'],
-            'planning': ['planning', 'grooming', 'estimation'],
-            'one_on_one': ['1:1', 'one on one', 'one-on-one', '1-1'],
-            'interview': ['interview', 'hiring', 'candidate'],
-            'external': ['client', 'customer', 'vendor', 'external']
-        }
+        # AI-powered categorization provides these categories:
+        # standup, planning, review, one_on_one, interview, training, 
+        # brainstorm, client, social, administrative, technical, other
         
         # Report settings
         self.include_private_events = os.getenv('INCLUDE_PRIVATE_EVENTS', 'false').lower() == 'true'
