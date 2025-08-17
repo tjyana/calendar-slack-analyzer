@@ -198,6 +198,13 @@ reporter = SlackReporter(config)
 print("Slack connection:", reporter.test_connection())
 ```
 
+### Testing AI Configuration
+If AI summaries aren't working, run the dedicated AI test:
+```bash
+python test_ai.py
+```
+This will check your OpenAI configuration and test summary generation.
+
 ## Running in Production 🏭
 
 ### As a Service (Linux)

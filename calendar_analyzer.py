@@ -161,15 +161,27 @@ Meeting details:
 Respond with only the category name (lowercase, no explanation)."""
 
         try:
-            client = openai.OpenAI(api_key=self.config.openai_api_key)
-            response = client.chat.completions.create(
-                model=self.config.openai_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=20,
-                temperature=0.1
-            )
-            
-            category = response.choices[0].message.content.strip().lower()
+            # Handle both old and new OpenAI API versions
+            if hasattr(openai, 'OpenAI'):
+                # New API (v1.0+)
+                client = openai.OpenAI(api_key=self.config.openai_api_key)
+                response = client.chat.completions.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=20,
+                    temperature=0.1
+                )
+                category = response.choices[0].message.content.strip().lower()
+            else:
+                # Old API (v0.x)
+                openai.api_key = self.config.openai_api_key
+                response = openai.ChatCompletion.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=20,
+                    temperature=0.1
+                )
+                category = response.choices[0].message.content.strip().lower()
             
             # Validate that we got a valid category
             valid_categories = [

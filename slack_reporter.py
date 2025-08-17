@@ -204,11 +204,21 @@ class SlackReporter:
     def _generate_written_summary(self, past_week_analysis: Dict[str, Any], 
                                 upcoming_week_summary: Dict[str, Any]) -> str:
         """Generate an AI-powered written summary of the week."""
-        if not self.config.openai_api_key or not self.config.ai_categorization_enabled:
+        # Debug logging for configuration
+        logger.info(f"AI Summary Debug - API Key present: {bool(self.config.openai_api_key)}")
+        logger.info(f"AI Summary Debug - AI enabled: {self.config.ai_categorization_enabled}")
+        
+        if not self.config.openai_api_key:
+            logger.info("Using basic summary: No OpenAI API key configured")
+            return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
+        
+        if not self.config.ai_categorization_enabled:
+            logger.info("Using basic summary: AI categorization disabled")
             return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
         
         try:
             import openai
+            logger.info("Attempting to generate AI-powered summary...")
             
             # Prepare data for AI analysis
             total_events = past_week_analysis['total_events']
@@ -244,7 +254,7 @@ Upcoming week:
 - Focus opportunities: {len(focus_opportunities)} days
 """
 
-            prompt = f"""Write a brief, professional summary of this person's meeting week in 2-3 sentences. Focus on:
+            prompt = f"""Write a brief, professional summary of this person's meeting week in 4-5 sentences. Focus on:
 1. Overall meeting load and time investment
 2. Key meeting patterns or notable trends
 3. Work-life balance observations
@@ -258,19 +268,36 @@ Data:
 Write a summary in this style: "This week you had..."
 """
 
-            client = openai.OpenAI(api_key=self.config.openai_api_key)
-            response = client.chat.completions.create(
-                model=self.config.openai_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=150,
-                temperature=0.7
-            )
-            
-            summary = response.choices[0].message.content.strip()
+            # Handle both old and new OpenAI API versions
+            if hasattr(openai, 'OpenAI'):
+                # New API (v1.0+)
+                client = openai.OpenAI(api_key=self.config.openai_api_key)
+                response = client.chat.completions.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                    temperature=0.7
+                )
+                summary = response.choices[0].message.content.strip()
+            else:
+                # Old API (v0.x)
+                openai.api_key = self.config.openai_api_key
+                response = openai.ChatCompletion.create(
+                    model=self.config.openai_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                    temperature=0.7
+                )
+                summary = response.choices[0].message.content.strip()
+            logger.info("Successfully generated AI-powered summary")
             return summary
             
+        except ImportError as e:
+            logger.warning(f"OpenAI library not available: {str(e)}")
+            return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
         except Exception as e:
-            logger.warning(f"Failed to generate AI summary, using basic summary: {str(e)}")
+            logger.warning(f"Failed to generate AI summary: {type(e).__name__}: {str(e)}")
+            logger.warning("Falling back to basic summary")
             return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
     
     def _generate_basic_summary(self, past_week_analysis: Dict[str, Any], 

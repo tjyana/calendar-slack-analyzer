@@ -25,6 +25,8 @@ def test_environment():
         'GOOGLE_CREDENTIALS_PATH': os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json'),
         'SLACK_CHANNEL': os.getenv('SLACK_CHANNEL', '#general'),
         'TIMEZONE': os.getenv('TIMEZONE', 'UTC'),
+        'OPENAI_API_KEY': os.getenv('OPENAI_API_KEY'),
+        'AI_CATEGORIZATION_ENABLED': os.getenv('AI_CATEGORIZATION_ENABLED', 'true'),
     }
     
     print("Required variables:")
@@ -109,6 +111,58 @@ def test_calendar_connection():
         print("   You may need to complete the OAuth flow when running the main app")
         return False
 
+def test_ai_configuration():
+    """Test AI configuration for categorization and summaries."""
+    print("\n🤖 Testing AI configuration...")
+    
+    api_key = os.getenv('OPENAI_API_KEY')
+    ai_enabled = os.getenv('AI_CATEGORIZATION_ENABLED', 'true').lower() == 'true'
+    
+    if not api_key:
+        print("⚠️  OpenAI API key not configured")
+        print("   AI features will fall back to basic keyword matching")
+        print("   To enable AI: Add OPENAI_API_KEY to your .env file")
+        return True  # Not a failure, just a limitation
+    
+    if not ai_enabled:
+        print("ℹ️  AI categorization disabled")
+        print("   Set AI_CATEGORIZATION_ENABLED=true to enable")
+        return True
+    
+    try:
+        import openai
+        print(f"✅ OpenAI library available")
+        
+        # Quick API test - handle both old and new OpenAI API versions
+        if hasattr(openai, 'OpenAI'):
+            # New API (v1.0+)
+            client = openai.OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model=os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo'),
+                messages=[{"role": "user", "content": "Test"}],
+                max_tokens=5
+            )
+        else:
+            # Old API (v0.x)
+            openai.api_key = api_key
+            response = openai.ChatCompletion.create(
+                model=os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo'),
+                messages=[{"role": "user", "content": "Test"}],
+                max_tokens=5
+            )
+        print("✅ OpenAI API connection successful!")
+        print("   AI categorization and summaries will be enabled")
+        return True
+        
+    except ImportError:
+        print("❌ OpenAI library not installed")
+        print("   Run: pip install -r requirements.txt")
+        return False
+    except Exception as e:
+        print(f"❌ OpenAI API test failed: {str(e)}")
+        print("   Check your API key and billing status")
+        return False
+
 def test_dependencies():
     """Test that all required dependencies are installed."""
     print("\n📦 Testing dependencies...")
@@ -155,6 +209,7 @@ def main():
         ("Google Credentials", test_google_credentials),
         ("Slack Connection", test_slack_connection),
         ("Calendar Connection", test_calendar_connection),
+        ("AI Configuration", test_ai_configuration),
     ]
     
     results = {}
