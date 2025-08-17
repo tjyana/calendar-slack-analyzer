@@ -9,6 +9,7 @@ A Python application that analyzes your Google Calendar data and sends weekly re
 - **Time Usage**: Tracks total meeting time, working hours vs after-hours
 - **Daily Breakdown**: Shows meeting distribution across the week
 - **Smart Insights**: Provides actionable insights about your meeting habits
+- **Focused Analysis**: Excludes all-day events by default (configurable)
 
 ### Upcoming Week Preview
 - **Schedule Overview**: Summary of upcoming meetings
@@ -139,6 +140,7 @@ Each weekly report includes:
 | `WORKING_HOURS_START` | `9` | Work day start hour |
 | `WORKING_HOURS_END` | `17` | Work day end hour |
 | `INCLUDE_PRIVATE_EVENTS` | `false` | Include private calendar events |
+| `INCLUDE_ALL_DAY_EVENTS` | `false` | Include all-day events in analysis |
 | `MAX_UPCOMING_EVENTS` | `10` | Max events in upcoming preview |
 
 ## Troubleshooting 🔧

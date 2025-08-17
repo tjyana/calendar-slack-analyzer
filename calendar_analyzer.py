@@ -99,6 +99,12 @@ class CalendarAnalyzer:
         else:
             raise ValueError("No valid time found in event data")
     
+    def _is_all_day_event(self, event: Dict) -> bool:
+        """Check if an event is an all-day event."""
+        # All-day events have 'date' instead of 'dateTime' in their start/end
+        start_data = event.get('start', {})
+        return 'date' in start_data and 'dateTime' not in start_data
+    
     def _categorize_event(self, event: Dict) -> str:
         """Categorize an event based on its title and description."""
         title = event.get('summary', '').lower()
@@ -173,6 +179,10 @@ class CalendarAnalyzer:
                 
                 # Skip private events if configured
                 if not self.config.include_private_events and event.get('visibility') == 'private':
+                    continue
+                
+                # Skip all-day events if configured
+                if not self.config.include_all_day_events and self._is_all_day_event(event):
                     continue
                 
                 start_time = self._parse_event_time(event['start'])
@@ -294,6 +304,10 @@ class CalendarAnalyzer:
         for event in events:
             try:
                 if event.get('status') == 'cancelled':
+                    continue
+                
+                # Skip all-day events if configured
+                if not self.config.include_all_day_events and self._is_all_day_event(event):
                     continue
                 
                 start_time = self._parse_event_time(event['start'])

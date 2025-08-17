@@ -26,6 +26,7 @@ EXCLUDE_WEEKENDS=true
 
 # Report Settings
 INCLUDE_PRIVATE_EVENTS=false
+INCLUDE_ALL_DAY_EVENTS=false
 MAX_UPCOMING_EVENTS=10
 
 # Testing (set to true to run analysis immediately on startup)
