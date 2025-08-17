@@ -5,6 +5,7 @@ A Python application that analyzes your Google Calendar data and sends weekly re
 ## Features 🚀
 
 ### Past Week Analysis
+- **AI-Written Summary**: Narrative overview of your week with actionable insights
 - **Meeting Patterns**: Categorizes meetings (standups, reviews, planning, 1:1s, etc.)
 - **Time Usage**: Tracks total meeting time, working hours vs after-hours
 - **Daily Breakdown**: Shows meeting distribution across the week
@@ -69,7 +70,7 @@ pip install -r requirements.txt
 3. Generate a new API key
 4. Copy the API key (starts with `sk-`)
 
-*Note: AI categorization provides much more accurate meeting classification than keyword matching. Without OpenAI, the app falls back to basic keyword detection.*
+*Note: AI categorization provides much more accurate meeting classification than keyword matching. The AI also generates personalized written summaries of your week with actionable insights. Without OpenAI, the app falls back to basic keyword detection and simple summaries.*
 
 ### 5. Configuration
 
@@ -132,6 +133,7 @@ python main.py --immediate
 Each weekly report includes:
 
 **Past Week Analysis:**
+- AI-generated narrative summary with actionable insights
 - Total meetings and time spent
 - Daily breakdown of meetings
 - Meeting type categorization
@@ -161,6 +163,7 @@ Each weekly report includes:
 | `WORKING_HOURS_END` | `17` | Work day end hour |
 | `INCLUDE_PRIVATE_EVENTS` | `false` | Include private calendar events |
 | `INCLUDE_ALL_DAY_EVENTS` | `false` | Include all-day events in analysis |
+| `WRITTEN_SUMMARY_ENABLED` | `true` | Enable AI-generated written summaries |
 | `MAX_UPCOMING_EVENTS` | `10` | Max events in upcoming preview |
 
 ## Troubleshooting 🔧

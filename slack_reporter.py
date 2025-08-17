@@ -201,6 +201,106 @@ class SlackReporter:
         
         return blocks
     
+    def _generate_written_summary(self, past_week_analysis: Dict[str, Any], 
+                                upcoming_week_summary: Dict[str, Any]) -> str:
+        """Generate an AI-powered written summary of the week."""
+        if not self.config.openai_api_key or not self.config.ai_categorization_enabled:
+            return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
+        
+        try:
+            import openai
+            
+            # Prepare data for AI analysis
+            total_events = past_week_analysis['total_events']
+            total_time = self._format_duration(past_week_analysis['total_meeting_time'])
+            working_hours = self._format_duration(past_week_analysis['working_hours_time'])
+            after_hours = self._format_duration(past_week_analysis['after_hours_time'])
+            
+            # Get top meeting types
+            category_breakdown = past_week_analysis.get('category_breakdown', {})
+            top_categories = sorted(category_breakdown.items(), 
+                                  key=lambda x: x[1]['count'], reverse=True)[:3]
+            
+            # Get daily distribution
+            daily_breakdown = past_week_analysis.get('daily_breakdown', {})
+            busiest_day = max(daily_breakdown.items(), 
+                            key=lambda x: x[1]['events'])[0] if daily_breakdown else "Unknown"
+            
+            # Upcoming week info
+            upcoming_events = upcoming_week_summary['total_events']
+            focus_opportunities = upcoming_week_summary.get('focus_opportunities', [])
+            
+            # Build context for AI
+            context = f"""Past week statistics:
+- Total meetings: {total_events}
+- Total meeting time: {total_time}
+- Working hours meetings: {working_hours}
+- After-hours meetings: {after_hours}
+- Busiest day: {busiest_day}
+- Top meeting types: {', '.join([f"{cat} ({stats['count']})" for cat, stats in top_categories])}
+
+Upcoming week:
+- Scheduled meetings: {upcoming_events}
+- Focus opportunities: {len(focus_opportunities)} days
+"""
+
+            prompt = f"""Write a brief, professional summary of this person's meeting week in 2-3 sentences. Focus on:
+1. Overall meeting load and time investment
+2. Key meeting patterns or notable trends
+3. Work-life balance observations
+4. One actionable insight for the upcoming week
+
+Keep it conversational and helpful, like advice from a productivity coach.
+
+Data:
+{context}
+
+Write a summary in this style: "This week you had..."
+"""
+
+            client = openai.OpenAI(api_key=self.config.openai_api_key)
+            response = client.chat.completions.create(
+                model=self.config.openai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=150,
+                temperature=0.7
+            )
+            
+            summary = response.choices[0].message.content.strip()
+            return summary
+            
+        except Exception as e:
+            logger.warning(f"Failed to generate AI summary, using basic summary: {str(e)}")
+            return self._generate_basic_summary(past_week_analysis, upcoming_week_summary)
+    
+    def _generate_basic_summary(self, past_week_analysis: Dict[str, Any], 
+                              upcoming_week_summary: Dict[str, Any]) -> str:
+        """Generate a basic written summary without AI."""
+        total_events = past_week_analysis['total_events']
+        total_time = self._format_duration(past_week_analysis['total_meeting_time'])
+        upcoming_events = upcoming_week_summary['total_events']
+        
+        if total_events == 0:
+            return "This week was unusually quiet with no scheduled meetings. Great time for deep work! Next week brings some meetings back to your calendar."
+        
+        # Determine meeting load
+        if total_events >= 20:
+            load_desc = "a heavy meeting week"
+        elif total_events >= 10:
+            load_desc = "a moderately busy meeting week"
+        else:
+            load_desc = "a light meeting week"
+        
+        # Get top category if available
+        category_breakdown = past_week_analysis.get('category_breakdown', {})
+        if category_breakdown:
+            top_category = max(category_breakdown.items(), key=lambda x: x[1]['count'])
+            category_insight = f", with {top_category[0].replace('_', ' ')} meetings being most common"
+        else:
+            category_insight = ""
+        
+        return f"This week you had {load_desc} with {total_events} meetings totaling {total_time}{category_insight}. Next week has {upcoming_events} meetings scheduled."
+    
     def generate_weekly_report(self, past_week_analysis: Dict[str, Any], 
                              upcoming_week_summary: Dict[str, Any]) -> List[Dict]:
         """Generate the complete weekly report as Slack blocks."""
@@ -213,6 +313,22 @@ class SlackReporter:
                 }
             }
         ]
+        
+        # Add written summary if enabled
+        if getattr(self.config, 'written_summary_enabled', True):
+            summary = self._generate_written_summary(past_week_analysis, upcoming_week_summary)
+            blocks.extend([
+                {
+                    "type": "divider"
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"📝 *Week Summary*\n{summary}"
+                    }
+                }
+            ])
         
         # Add past week analysis
         blocks.extend(self._create_past_week_section(past_week_analysis))

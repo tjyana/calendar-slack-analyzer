@@ -120,6 +120,12 @@ def run_weekly_analysis_test_mode():
         print("📊 CALENDAR ANALYSIS RESULTS (TEST MODE)")
         print("="*60)
         
+        # Generate and display written summary
+        if config.written_summary_enabled:
+            summary = slack_reporter._generate_written_summary(past_week_analysis, upcoming_week_summary)
+            print(f"\n📝 Written Summary:")
+            print(f"   {summary}")
+        
         print(f"\n📅 Past Week ({past_week_analysis['period']}):")
         print(f"  • Total meetings: {past_week_analysis['total_events']}")
         if past_week_analysis['total_events'] > 0:
